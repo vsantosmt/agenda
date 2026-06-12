@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    container_name: agenda-backend
+    ports:
+      - "3000:3001"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: agenda-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
