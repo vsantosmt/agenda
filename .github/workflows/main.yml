@@ -1,0 +1,53 @@
+name: prd
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  IMAGE_NAME: vsantosmt/agenda
+  TAG_VERSION: 1.0.${{ github.run_number }}
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      # 1. Pegar o código
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Login Docker Hub
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      # 3. Build Docker
+      - name: Build Image
+        run: |
+          docker build -t $IMAGE_NAME-frontend:$TAG_VERSION -f ./frontend/Dockerfile ./frontend
+          docker build -t $IMAGE_NAME-backend:$TAG_VERSION -f ./bakcend/Dockerfile ./backend
+
+      # 4. Push Docker Hub
+      - name: Push Image
+        run: |
+          docker push $IMAGE_NAME-frontend:$TAG_VERSION
+          docker push $IMAGE_NAME-backend:$TAG_VERSION
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+
+    steps:
+      # 1. Login Docker Hub
+      - name: Login Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      # 2. Deploy
+      - name: Pull Image and Deploy Application
+        run: |
+          export TAG_VERSION=${{ env.TAG_VERSION }}
+          docker compose pull
+          docker compose up -d --remove-orphans
+
